@@ -45,7 +45,8 @@ proxmox-backup-client backup \
   immich-db.pxar:"${BACKUP_DIR}" \
   immich-files.pxar:"${UPLOAD_DIR}/library" \
   --repository "${PBS_REPOSITORY}" \
-  "host/${BACKUP_NAME}"
+  --backup-type host \
+  --backup-id "${BACKUP_NAME}"
 
 echo "✓ Backup completed successfully"
 
