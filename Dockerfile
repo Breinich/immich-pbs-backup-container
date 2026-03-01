@@ -1,18 +1,20 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
+    wget \
+    nano \
     jq \
     cron \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Proxmox Backup Client
-RUN curl -fsSL https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg | apt-key add - && \
-    echo "deb http://download.proxmox.com/debian/pbs-client bookworm main" > /etc/apt/sources.list.d/pbs-client.list && \
-    apt-get update && apt-get install -y proxmox-backup-client && \
+RUN wget https://enterprise.proxmox.com/debian/proxmox-archive-keyring-trixie.gpg -O /usr/share/keyrings/proxmox-archive-keyring.gpg && \
+    echo "Types: deb\nURIs: http://download.proxmox.com/debian/pbs-client\nSuites: trixie\nComponents: main\nSigned-By: /usr/share/keyrings/proxmox-archive-keyring.gpg" > /etc/apt/sources.list.d/pbs-client.sources && \
+    apt-get update && apt-get install -y proxmox-backup-client proxmox-archive-keyring && \
     rm -rf /var/lib/apt/lists/*
 
 # Create backup and restore scripts
