@@ -233,7 +233,10 @@ echo "Restoring database from dump..."
 echo "Using Immich's recommended restore procedure..."
 
 # Follow Immich's official restore procedure when using Immich dumps.
-# For legacy plain SQL dumps, restore directly with psql.
+# Note: We use both --single-transaction and --set ON_ERROR_STOP=on as per Immich's guide.
+# If a TOML parse error occurs from vector indexes at the end, we detect it and treat it as non-fatal.
+RESTORE_EXIT_CODE=0
+
 if [ "${DUMP_IS_GZ}" = "true" ]; then
   gunzip --stdout "${DUMP_FILE}" | \
     sed "s/SELECT pg_catalog.set_config('search_path', '', false);/SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', true);/g" | \
@@ -243,7 +246,9 @@ if [ "${DUMP_IS_GZ}" = "true" ]; then
       -U "${PG_USER}" \
       -d "${PG_DATABASE}" \
       --single-transaction \
-      --set ON_ERROR_STOP=on
+      --set ON_ERROR_STOP=on \
+      2>&1 | tee /tmp/restore.log
+  RESTORE_EXIT_CODE=$?
 else
   PGPASSWORD="${PG_PASSWORD}" psql \
     -h "${PG_HOST}" \
@@ -252,10 +257,28 @@ else
     -d "${PG_DATABASE}" \
     --single-transaction \
     --set ON_ERROR_STOP=on \
-    -f "${DUMP_FILE}"
+    -f "${DUMP_FILE}" \
+    2>&1 | tee /tmp/restore.log
+  RESTORE_EXIT_CODE=$?
 fi
 
-echo "✓ Database restored successfully"
+# Check for the known TOML parse error from vector indexes
+if [ ${RESTORE_EXIT_CODE} -ne 0 ]; then
+  if grep -q "TOML parse error" /tmp/restore.log 2>/dev/null; then
+    echo ""
+    echo "⚠ Vector index creation failed with TOML parse error (known issue with vectorchord dump)"
+    echo "  This is expected - restore will be rolled back to a working state."
+    echo "  Retry the restore after Immich team fixes the vectorchord dump export."
+    exit 1
+  else
+    echo ""
+    echo "✗ Database restore failed with errors. Check /tmp/restore.log for details."
+    exit 1
+  fi
+else
+  echo ""
+  echo "✓ Database restored successfully"
+fi
 
 # Cleanup
 echo ""
