@@ -151,3 +151,8 @@ else
   echo "  Tables: ${TABLE_COUNT}, Users: ${USER_COUNT:-N/A}, Assets: ${ASSET_COUNT:-N/A}"
   echo "  Starting normal backup schedule..."
 fi
+
+# Signal that the initial check and restore (if needed) has completed
+touch /tmp/immich_backup_ready
+echo ""
+echo "✓ Check and restore phase completed. Immich server can now start."

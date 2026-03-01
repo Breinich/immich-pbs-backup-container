@@ -25,8 +25,12 @@ services:
     ports:
       - '2283:2283'
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      immich-backup:
+        condition: service_healthy
     restart: always
     healthcheck:
       disable: false
@@ -68,6 +72,12 @@ services:
       # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   immich-backup:
     container_name: immich_backup
@@ -89,10 +99,17 @@ services:
       - UPLOAD_LOCATION=/data
       - BACKUP_NAME=${BACKUP_NAME:-immich-backup}
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     restart: always
     env_file:
       - stack.env
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/immich_backup_ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 120
+      start_period: 30s
 
 volumes:
   model-cache:
