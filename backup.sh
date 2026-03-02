@@ -11,6 +11,26 @@ PG_DATABASE="${DB_DATABASE_NAME:-immich}"
 UPLOAD_DIR="${UPLOAD_LOCATION:-/data}"
 BACKUP_DIR="/tmp/immich"
 DB_DUMP_FILE="${BACKUP_DIR}/database.sql.gz"
+BACKUP_NAME="${BACKUP_NAME:-immich-backup}"
+
+# Validate required configuration before doing any work
+if [ -z "${PBS_REPOSITORY}" ]; then
+  echo "ERROR: PBS_REPOSITORY is empty"
+  echo "Set PBS_REPOSITORY in stack.env (example: user@pbs@host:datastore)"
+  exit 1
+fi
+
+if [ -z "${PBS_PASSWORD}" ]; then
+  echo "ERROR: PBS_PASSWORD is empty"
+  echo "Set PBS_PASSWORD in stack.env"
+  exit 1
+fi
+
+if ! echo "${BACKUP_NAME}" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+  echo "ERROR: BACKUP_NAME '${BACKUP_NAME}' is invalid"
+  echo "BACKUP_NAME must contain only letters, numbers, hyphen, underscore"
+  exit 1
+fi
 
 echo "==============================================="
 echo "Starting Immich backup at $(date)"
@@ -36,6 +56,7 @@ echo "  Size: $(du -h ${DB_DUMP_FILE} | cut -f1)"
 echo ""
 echo "Backing up to Proxmox Backup Server..."
 echo "Repository: ${PBS_REPOSITORY}"
+echo "Backup ID: ${BACKUP_NAME}"
 
 export PBS_PASSWORD
 export PBS_FINGERPRINT

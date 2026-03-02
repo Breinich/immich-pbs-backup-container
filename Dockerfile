@@ -47,7 +47,7 @@ RUN echo "#!/bin/bash" > /entrypoint.sh && \
     echo "  /backup/scripts/check_and_restore.sh" >> /entrypoint.sh && \
     echo "  # Start normal backup schedule" >> /entrypoint.sh && \
     echo "  # Configure cron to send output to stdout/stderr (visible in docker logs)" >> /entrypoint.sh && \
-    echo "  echo \"$BACKUP_SCHEDULE /backup/scripts/backup.sh >> /proc/1/fd/1 2>&1\" | crontab -" >> /entrypoint.sh && \
+    echo "  echo \"\${BACKUP_SCHEDULE:-0 2 * * *} DB_HOST='\${DB_HOST}' DB_PORT='\${DB_PORT}' DB_USERNAME='\${DB_USERNAME}' DB_PASSWORD='\${DB_PASSWORD}' DB_DATABASE_NAME='\${DB_DATABASE_NAME}' UPLOAD_LOCATION='\${UPLOAD_LOCATION}' PBS_REPOSITORY='\${PBS_REPOSITORY}' PBS_PASSWORD='\${PBS_PASSWORD}' PBS_FINGERPRINT='\${PBS_FINGERPRINT}' BACKUP_NAME='\${BACKUP_NAME}' /backup/scripts/backup.sh >> /proc/1/fd/1 2>&1\" | crontab -" >> /entrypoint.sh && \
     echo "  cron -f" >> /entrypoint.sh && \
     echo "fi" >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
