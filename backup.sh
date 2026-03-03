@@ -12,6 +12,12 @@ UPLOAD_DIR="${UPLOAD_LOCATION:-/data}"
 BACKUP_DIR="/tmp/immich"
 DB_DUMP_FILE="${BACKUP_DIR}/database.sql.gz"
 BACKUP_NAME="${BACKUP_NAME:-immich-backup}"
+PBS_NAMESPACE="${PBS_NAMESPACE:-}"
+
+PBS_NAMESPACE_ARGS=()
+if [ -n "${PBS_NAMESPACE}" ]; then
+  PBS_NAMESPACE_ARGS+=(--ns "${PBS_NAMESPACE}")
+fi
 
 # Validate required configuration before doing any work
 if [ -z "${PBS_REPOSITORY}" ]; then
@@ -56,6 +62,9 @@ echo "  Size: $(du -h ${DB_DUMP_FILE} | cut -f1)"
 echo ""
 echo "Backing up to Proxmox Backup Server..."
 echo "Repository: ${PBS_REPOSITORY}"
+if [ -n "${PBS_NAMESPACE}" ]; then
+  echo "Namespace: ${PBS_NAMESPACE}"
+fi
 echo "Backup ID: ${BACKUP_NAME}"
 
 export PBS_PASSWORD
@@ -66,6 +75,7 @@ proxmox-backup-client backup \
   immich-db.pxar:"${BACKUP_DIR}" \
   immich-files.pxar:"${UPLOAD_DIR}/library" \
   --repository "${PBS_REPOSITORY}" \
+  "${PBS_NAMESPACE_ARGS[@]}" \
   --backup-type host \
   --backup-id "${BACKUP_NAME}"
 

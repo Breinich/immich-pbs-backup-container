@@ -12,6 +12,12 @@ UPLOAD_DIR="${UPLOAD_LOCATION:-/data}"
 RESTORE_DIR="/tmp/immich_restore"
 BACKUP_TIMESTAMP="${1:-latest}"
 DATABASE_ONLY="${DATABASE_ONLY:-true}"
+PBS_NAMESPACE="${PBS_NAMESPACE:-}"
+
+PBS_NAMESPACE_ARGS=()
+if [ -n "${PBS_NAMESPACE}" ]; then
+  PBS_NAMESPACE_ARGS+=(--ns "${PBS_NAMESPACE}")
+fi
 
 echo "==============================================="
 echo "Starting Immich restore at $(date)"
@@ -33,6 +39,7 @@ if [ "${BACKUP_TIMESTAMP}" = "latest" ]; then
   BACKUP_TIME_EPOCH=$(proxmox-backup-client snapshot list \
     "host/${BACKUP_NAME}" \
     --repository "${PBS_REPOSITORY}" \
+    "${PBS_NAMESPACE_ARGS[@]}" \
     --output-format json | \
     jq -r 'sort_by(.["backup-time"]) | reverse | .[0]["backup-time"]')
   
@@ -55,6 +62,9 @@ echo "==============================================="
 echo "Step 1: Restoring from Proxmox Backup Server"
 echo "==============================================="
 echo "Repository: ${PBS_REPOSITORY}"
+if [ -n "${PBS_NAMESPACE}" ]; then
+  echo "Namespace: ${PBS_NAMESPACE}"
+fi
 echo "Snapshot: host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}"
 
 # First, list available archives in the snapshot
@@ -62,6 +72,7 @@ echo ""
 echo "Listing available archives in snapshot..."
 proxmox-backup-client snapshot files \
   "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
+  "${PBS_NAMESPACE_ARGS[@]}" \
   --repository "${PBS_REPOSITORY}" 2>&1 || echo "(Could not list archives)"
 
 # Restore database dump
@@ -85,6 +96,7 @@ for db_archive in "immich-db.pxar" "database.pxar"; do
       "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
       "${db_archive}" \
       "${TARGET_DIR}" \
+      "${PBS_NAMESPACE_ARGS[@]}" \
       --repository "${PBS_REPOSITORY}" 2>&1
     RESTORE_RC=$?
     if [ ${RESTORE_RC} -eq 0 ]; then
@@ -112,6 +124,7 @@ for db_archive in "immich-db.pxar" "database.pxar"; do
       "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
       "${db_archive}" \
       "${TARGET_FILE}" \
+      "${PBS_NAMESPACE_ARGS[@]}" \
       --repository "${PBS_REPOSITORY}" 2>&1
     RESTORE_RC=$?
     if [ ${RESTORE_RC} -eq 0 ]; then
@@ -128,6 +141,7 @@ for db_archive in "immich-db.pxar" "database.pxar"; do
       "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
       "${db_archive}" \
       "${TARGET_FILE}" \
+      "${PBS_NAMESPACE_ARGS[@]}" \
       --repository "${PBS_REPOSITORY}" 2>&1
     RESTORE_RC=$?
     if [ ${RESTORE_RC} -eq 0 ]; then
@@ -173,6 +187,7 @@ else
       "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
       "${archive}.pxar" \
       "${UPLOAD_DIR}/${archive}" \
+      "${PBS_NAMESPACE_ARGS[@]}" \
       --repository "${PBS_REPOSITORY}" 2>/dev/null; then
       RESTORED_FILES=true
     else
@@ -188,6 +203,7 @@ else
       "host/${BACKUP_NAME}/${BACKUP_TIMESTAMP}" \
       "immich-files.pxar" \
       "${UPLOAD_DIR}/library" \
+      "${PBS_NAMESPACE_ARGS[@]}" \
       --repository "${PBS_REPOSITORY}" 2>&1
     RESTORE_RC=$?
     if [ ${RESTORE_RC} -eq 0 ]; then

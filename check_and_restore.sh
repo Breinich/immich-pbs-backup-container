@@ -11,6 +11,12 @@
 
 set -e
 
+PBS_NAMESPACE="${PBS_NAMESPACE:-}"
+PBS_NAMESPACE_ARGS=()
+if [ -n "${PBS_NAMESPACE}" ]; then
+  PBS_NAMESPACE_ARGS+=(--ns "${PBS_NAMESPACE}")
+fi
+
 echo "==============================================="
 echo "Checking Immich database state..."
 echo "==============================================="
@@ -79,6 +85,9 @@ if [ "$SHOULD_RESTORE" = "true" ]; then
   # Check if backups exist in PBS
   echo "Checking for existing backups in PBS..."
   echo "Repository: ${PBS_REPOSITORY}"
+  if [ -n "${PBS_NAMESPACE}" ]; then
+    echo "Namespace: ${PBS_NAMESPACE}"
+  fi
   echo "Backup ID: ${BACKUP_NAME}"
   echo "DEBUG: Starting credential checks..."
   
@@ -103,12 +112,13 @@ if [ "$SHOULD_RESTORE" = "true" ]; then
   export PBS_FINGERPRINT
 
   echo "DEBUG: About to run proxmox-backup-client..."
-  echo "DEBUG: Full command: proxmox-backup-client snapshot list 'host/${BACKUP_NAME}' --repository '${PBS_REPOSITORY}' --output-format json"
+  echo "DEBUG: Full command: proxmox-backup-client snapshot list 'host/${BACKUP_NAME}' --repository '${PBS_REPOSITORY}' ${PBS_NAMESPACE:+--ns '${PBS_NAMESPACE}'} --output-format json"
   
   set +e
   SNAPSHOT_JSON=$(timeout 30 proxmox-backup-client snapshot list \
     "host/${BACKUP_NAME}" \
     --repository "${PBS_REPOSITORY}" \
+    "${PBS_NAMESPACE_ARGS[@]}" \
     --output-format json 2>&1)
   SNAPSHOT_RC=$?
   set -e

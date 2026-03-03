@@ -25,6 +25,10 @@ PBS_REPOSITORY=username@pbs@host:datastore
 PBS_PASSWORD=your-pbs-password
 PBS_FINGERPRINT=your-pbs-fingerprint
 
+# Optional: PBS namespace
+# Example: ns/immich
+PBS_NAMESPACE=
+
 # Optional: Customize backup schedule (cron format)
 BACKUP_SCHEDULE=0 2 * * *
 
@@ -92,7 +96,7 @@ docker run --rm -it \
 
 > **Note:** Use the ISO 8601 timestamp format shown in PBS snapshot list. List available backups:
 > ```bash
-> proxmox-backup-client snapshot list "host/${BACKUP_NAME}" --repository "${PBS_REPOSITORY}"
+> proxmox-backup-client snapshot list "host/${BACKUP_NAME}" --repository "${PBS_REPOSITORY}" ${PBS_NAMESPACE:+--ns "${PBS_NAMESPACE}"}
 > ```
 
 The restore process:
