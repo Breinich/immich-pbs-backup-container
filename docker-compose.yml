@@ -82,6 +82,7 @@ services:
   immich-backup:
     container_name: immich_backup
     image: codeberg.org/bajnok-lab/immich/backup:latest
+    pull_policy: always
     tmpfs:
       - /tmp:size=500m
     volumes:
